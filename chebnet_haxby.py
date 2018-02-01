@@ -67,7 +67,8 @@ params['verbose'] = False
 #
 # Grid Search
 #
-saver = open('subject_' + str(args.subject) + '.log', 'a')
+saver = open('subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph), 'a')
+saver.write("F M1 M2 dropout\n")
 NB_INITIALIZATIONS = 25
 gridSearchMax = 0.
 gridSearchAveStd = 0., 0.
@@ -108,6 +109,9 @@ for F in [8, 16, 32, 64, 128]:
                         F) + ", fullyConnectedSize1=" + str(M1) + ", fullyConnectedSize2=" + str(
                         M2) + ", dropout=" + str(dropout) + ")"
                     print(toprint)
+
+                saver.write("{} {} {} {}\n".format(F, M1, M2, dropout))
+                saver.flush()
 
 saver.write("Best Max found: " + str(gridSearchMax) + '\n')
 saver.write("Best AveStd found: " + str(gridSearchAveStd) + '\n')
