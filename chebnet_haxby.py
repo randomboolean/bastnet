@@ -10,6 +10,7 @@ from graph import laplacian
 parser = argparse.ArgumentParser(description="Run grid search for ChebNet on Haxby")
 parser.add_argument('--graph', default='haxby_geo_6closest_symmetrized', type=str)
 parser.add_argument('--subject', default=0, type=int)
+parser.add_argument('--order', default=20, type=int)
 args = parser.parse_args()
 
 #
@@ -50,7 +51,7 @@ assert C == 8
 
 # Architecture.
 params['F'] = None  # Number of graph convolutional filters. -> grid searched
-params['K'] = [20]  # Polynomial orders.
+params['K'] = [args.order]  # Polynomial orders.
 params['p'] = [1]  # Pooling sizes.
 params['M'] = None  # Output dimensionality of fully connected layers. -> grid searched
 
