@@ -2,6 +2,7 @@
 
 import argparse
 import shutil
+import time
 import numpy as np
 from loader import load_dataset, load_graph
 from models import cgcnn
@@ -68,7 +69,7 @@ params['verbose'] = False
 # Grid Search
 #
 saver = open('subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph), 'w')
-saver.write("F M1 M2 dropout cur_max cur_ave cur_std\n")
+saver.write("F M1 M2 dropout cur_max cur_ave cur_std time\n")
 NB_INITIALIZATIONS = 25
 gridSearchMax = 0.
 gridSearchAveStd = 0., 0.
@@ -80,6 +81,7 @@ for F in [8, 16, 32, 64, 128]:
 
                 # We keep the best max and best ave found
                 results = []
+                t_start = time.time()
                 for init in range(NB_INITIALIZATIONS):
                     sim_id += 1
                     params['dir_name'] = 'subject{}_K{}_{}_{}'.format(args.subject, args.order, args.graph, sim_id) 
@@ -110,7 +112,8 @@ for F in [8, 16, 32, 64, 128]:
                         M2) + ", dropout=" + str(dropout) + ")"
                     print(toprint)
 
-                saver.write("{} {} {} {} {} {} {}\n".format(F, M1, M2, dropout, gridSearchMax, gridSearchAveStd[0], gridSearchAveStd[1]))
+                t_spent = time.time() - t_start
+                saver.write("{} {} {} {} {} {} {} {:.2f}s\n".format(F, M1, M2, dropout, gridSearchMax, gridSearchAveStd[0], gridSearchAveStd[1], t_spent))
                 saver.flush()
 
 saver.write("Best Max found: " + str(gridSearchMax) + '\n')
