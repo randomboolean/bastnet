@@ -82,7 +82,7 @@ for F in [8, 16, 32, 64, 128]:
                 results = []
                 for init in range(NB_INITIALIZATIONS):
                     sim_id += 1
-                    params['dir_name'] = 'subject_' + str(args.subject) + '_' + str(sim_id)
+                    params['dir_name'] = 'subject{}_K{}_{}_{}'.format(args.subject, args.order, args.graph, sim_id) 
                     params['F'] = [F]
                     params['M'] = [M1, M2, C] if M2 else [M1, C]
                     params['dropout'] = dropout
@@ -100,8 +100,8 @@ for F in [8, 16, 32, 64, 128]:
                         print(toprint)
 
                     # remove folder
-                    shutil.rmtree(
-                        'checkpoints/subject_' + str(args.subject) + '_' + str(sim_id))
+                    shutil.rmtree('checkpoints/' + params['dir_name'])
+                    #shutil.rmtree('summaries/' + params['dir_name'])
                 aveStd = np.mean(results), np.std(results)
                 if aveStd[0] > gridSearchAveStd[0]:
                     gridSearchAveStd = aveStd
