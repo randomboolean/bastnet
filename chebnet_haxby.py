@@ -67,7 +67,7 @@ params['verbose'] = False
 #
 # Grid Search
 #
-saver = open('subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph), 'a')
+saver = open('subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph), 'w')
 saver.write("F M1 M2 dropout\n")
 NB_INITIALIZATIONS = 25
 gridSearchMax = 0.
@@ -101,7 +101,7 @@ for F in [8, 16, 32, 64, 128]:
 
                     # remove folder
                     shutil.rmtree('checkpoints/' + params['dir_name'])
-                    #shutil.rmtree('summaries/' + params['dir_name'])
+                    shutil.rmtree('summaries/' + params['dir_name'])
                 aveStd = np.mean(results), np.std(results)
                 if aveStd[0] > gridSearchAveStd[0]:
                     gridSearchAveStd = aveStd
