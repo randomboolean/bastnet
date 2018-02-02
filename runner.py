@@ -33,4 +33,5 @@ while len(tasks) > 0:
       foundAvailable = True
   
   os.system('ssh jcvialat@' + server + task)
+  print('Executed {} on {}'.format(task, server))
 
