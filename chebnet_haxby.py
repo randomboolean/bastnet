@@ -1,5 +1,6 @@
 """Run grid search for a ChebNet architecture on Haxby data set"""
 
+import os
 import argparse
 import shutil
 import time
@@ -68,16 +69,34 @@ params['verbose'] = False
 #
 # Grid Search
 #
-saver = open('subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph), 'w')
-saver.write("F M1 M2 dropout cur_max cur_ave cur_std time\n")
-NB_INITIALIZATIONS = 25
-gridSearchMax = 0.
-gridSearchAveStd = 0., 0.
+
+filename = 'subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph
+if os.path.isfile(filename):
+    last = open(filename, 'r').readlines[-1].split(' ')
+    resumer = [int(last[0]), int(last[1]), int(last[2]), float(last[3])]
+    gridSearchMax = float([last[4])
+    gridSearchAveStd = float([last[5]), float([last[6])
+    saver = open(filename, 'a')
+else:
+    resumer = None
+    saver = open(filename, 'w')
+    saver.write("F M1 M2 dropout cur_max cur_ave cur_std time\n")
+    gridSearchMax = 0.
+    gridSearchAveStd = 0., 0.
 sim_id = -1
+NB_INITIALIZATIONS = 25
+resume = resumer is None
 for F in [8, 16, 32, 64, 128]:
     for M1 in [32, 64, 128]:
         for M2 in [0, 32, 64, 128]:
             for dropout in [1., 0.75, 0.5]:
+
+                # Do we resume from last checkpoint or not
+                if not(resume):
+                    if [F, M1, M2, dropout] == resumer:
+                        resume = True
+                    sim_id += NB_INITIALIZATIONS
+                    continue
 
                 # We keep the best max and best ave found
                 results = []
