@@ -744,7 +744,7 @@ class cgcnn(base_model):
     Directories:
         dir_name: Name for directories (summaries and model parameters).
     """
-    def __init__(self, L, F, K, p, M, filter='chebyshev5', brelu='b1relu', pool='mpool1',
+    def __init__(self, L, F, K, p, M, D=None, filter='chebyshev5', brelu='b1relu', pool='mpool1',
                 num_epochs=20, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
                 dir_name='',
@@ -752,7 +752,9 @@ class cgcnn(base_model):
         super().__init__()
         
         # Verify the consistency w.r.t. the number of layers.
-        assert len(L) >= len(F) == len(K) == len(p)
+        if D is None:
+            D = [0] * len(F)
+        assert len(L) >= len(F) == len(K) == len(p) == len(D)
         assert np.all(np.array(p) >= 1)
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
         assert np.all(np.mod(p_log2, 1) == 0)  # Powers of 2.
@@ -795,7 +797,7 @@ class cgcnn(base_model):
                 print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
         
         # Store attributes and bind operations.
-        self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
+        self.L, self.F, self.K, self.p, self.M, self.D = L, F, K, p, M, D
         self.num_epochs, self.learning_rate = num_epochs, learning_rate
         self.decay_rate, self.decay_steps, self.momentum = decay_rate, decay_steps, momentum
         self.regularization, self.dropout = regularization, dropout
@@ -960,6 +962,8 @@ class cgcnn(base_model):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i])
+                    if self.D[i] > 0:
+                        x = tf.nn.dropout(x, self.D[i])
                 with tf.name_scope('bias_relu'):
                     x = self.brelu(x)
                 with tf.name_scope('pooling'):
