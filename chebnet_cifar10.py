@@ -20,9 +20,9 @@ args = parser.parse_args()
 # Data
 #
 
-(X_train, Y_train), (X_test, Y_test) = cifar10.load_data()
+(X_train, y_train), (X_test, y_test) = cifar10.load_data()
 X_train, X_test= X_train / 255.0 , X_test / 255.0
-#Y_train, Y_test = to_categorical(Y_train), to_categorical(Y_test)
+#y_train, y_test = to_categorical(y_train), to_categorical(y_test)
 
 n_train = X_train.shape[0]
 imgWidth = X_train.shape[1]
@@ -31,7 +31,7 @@ imgChannels = X_train.shape[3]
 
 X_val, y_val = X_test, y_test
 n_val = y_val.shape
-C = len(set([label[0] for label in Y_train]))
+C = len(set([label[0] for label in y_train]))
 
 #
 # Graphs and laplacians
