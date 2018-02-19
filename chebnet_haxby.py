@@ -70,12 +70,12 @@ params['verbose'] = False
 # Grid Search
 #
 
-filename = 'subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph
+filename = 'subject{}_K{}_{}.log'.format(args.subject, args.order, args.graph)
 if os.path.isfile(filename):
-    last = open(filename, 'r').readlines[-1].split(' ')
+    last = open(filename, 'r').readlines()[-1].split(' ')
     resumer = [int(last[0]), int(last[1]), int(last[2]), float(last[3])]
-    gridSearchMax = float([last[4])
-    gridSearchAveStd = float([last[5]), float([last[6])
+    gridSearchMax = float(last[4])
+    gridSearchAveStd = float(last[5]), float(last[6])
     saver = open(filename, 'a')
 else:
     resumer = None
