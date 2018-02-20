@@ -23,15 +23,15 @@ args = parser.parse_args()
 (X_train, y_train), (X_test, y_test) = cifar10.load_data()
 X_train, X_test= X_train / 255.0 , X_test / 255.0
 #y_train, y_test = to_categorical(y_train), to_categorical(y_test)
+y_train, y_test = y_train.reshape((y_train.shape[0],)), ((y_test.shape[0],))
 
 n_train = X_train.shape[0]
+n_test= X_test.shape[0]
 imgWidth = X_train.shape[1]
 imgHeight = X_train.shape[2]
 imgChannels = X_train.shape[3]
-
-X_val, y_val = X_test, y_test
-n_val = y_val.shape
-C = len(set([label[0] for label in y_train]))
+X_train, X_test= X_train.reshape(n_train, imgWidth*imgHeight, imgChannels) , X_test.reshape(n_test, imgWidth*imgHeight, imgChannels)
+C = 10
 
 #
 # Graphs and laplacians
@@ -62,16 +62,18 @@ assert C == 10
 # Architecture.
 params['F'] = [96,96,96,192,192,192,96]  # Number of graph convolutional filters. -> grid searched
 params['D'] = [0.,0.,0.5,0.,0.5,0.5,0.5] # Dropout per conv filters
-params['K'] = [args.order] * len(params['F'])  # Polynomial orders.
-params['p'] = [1] * len(params['F'])  # Pooling sizes.
+depth = len(params['F'])
+params['K'] = [args.order] * depth  # Polynomial orders.
+params['p'] = [1] * depth  # Pooling sizes.
 params['M'] = [C]  # Output dimensionality of fully connected layers. -> grid searched
+params['nb_channels'] = 3
 
 # Optimization.
 params['regularization'] = 5e-4
 params['dropout'] = 0.
 params['decay_rate'] = 0.95
 params['momentum'] = 0.
-#params['decay_steps'] = n_train / params['batch_size']
+params['decay_steps'] = n_train / params['batch_size']
 params['verbose'] = False
 
 #
@@ -83,9 +85,8 @@ saver = open(filename, 'w')
 saver.write("max time\n")
 
 t_start = time.time()
-
-model = cgcnn(L, **params)
-_accuracy, _loss, _t_step = model.fit(X_train, y_train, X_val, y_val, verbose=False)
+model = cgcnn(L * depth, **params)
+_accuracy, _loss, _t_step = model.fit(X_train, y_train, X_test, y_test, verbose=False)
 
 maxValue = max(_accuracy)
 

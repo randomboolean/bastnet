@@ -130,7 +130,7 @@ class base_model(object):
                 writer.add_summary(summary, step)
                 
                 # Save model parameters (for evaluation).
-                self.op_saver.save(sess, path, global_step=step)
+                #self.op_saver.save(sess, path, global_step=step)
 
         if verbose:
             print('validation accuracy: peak = {:.2f}, mean = {:.2f}'.format(max(accuracies), np.mean(accuracies[-10:])))
@@ -149,14 +149,17 @@ class base_model(object):
 
     # Methods to construct the computational graph.
     
-    def build_graph(self, M_0):
+    def build_graph(self, M_0, nb_channels=1):
         """Build the computational graph of the model."""
         self.graph = tf.Graph()
         with self.graph.as_default():
 
             # Inputs.
             with tf.name_scope('inputs'):
-                self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0), 'data')
+                if nb_channels == 1:
+                    self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0), 'data')
+                else:
+                    self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0, nb_channels), 'data')
                 self.ph_labels = tf.placeholder(tf.int32, (self.batch_size), 'labels')
                 self.ph_dropout = tf.placeholder(tf.float32, (), 'dropout')
 
@@ -172,7 +175,7 @@ class base_model(object):
             
             # Summaries for TensorBoard and Save for model parameters.
             self.op_summary = tf.summary.merge_all()
-            self.op_saver = tf.train.Saver(max_to_keep=5)
+            #self.op_saver = tf.train.Saver(max_to_keep=5)
         
         self.graph.finalize()
     
@@ -744,7 +747,7 @@ class cgcnn(base_model):
     Directories:
         dir_name: Name for directories (summaries and model parameters).
     """
-    def __init__(self, L, F, K, p, M, D=None, filter='chebyshev5', brelu='b1relu', pool='mpool1',
+    def __init__(self, L, F, K, p, M, D=None, nb_channels=1, filter='chebyshev5', brelu='b1relu', pool='mpool1',
                 num_epochs=20, learning_rate=0.1, decay_rate=0.95, decay_steps=None, momentum=0.9,
                 regularization=0, dropout=0, batch_size=100, eval_frequency=200,
                 dir_name='',
@@ -808,7 +811,7 @@ class cgcnn(base_model):
         self.pool = getattr(self, pool)
         
         # Build the computational graph.
-        self.build_graph(M_0)
+        self.build_graph(M_0, nb_channels)
         
     def filter_in_fourier(self, x, L, Fout, K, U, W):
         # TODO: N x F x M would avoid the permutations
@@ -957,7 +960,8 @@ class cgcnn(base_model):
 
     def _inference(self, x, dropout):
         # Graph convolutional layers.
-        x = tf.expand_dims(x, 2)  # N x M x F=1
+        if len(x.shape) == 2:
+            x = tf.expand_dims(x, 2)  # N x M x F=1
         for i in range(len(self.p)):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):

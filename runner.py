@@ -18,8 +18,8 @@ else:
 servers = ['10.29.208.7' + str(i) for i in range(3, 10)]
 servers += ['10.29.208.5' + str(i) for i in range(2, 10)]
 
-os.system('rm -rf checkpoints/*')
-os.system('rm -rf summaries/*')
+#os.system('rm -rf checkpoints/*')
+#os.system('rm -rf summaries/*')
 
 while len(tasks) > 0:
   task = tasks.pop()
