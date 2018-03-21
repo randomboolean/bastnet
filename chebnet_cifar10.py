@@ -77,7 +77,7 @@ params['decay_steps'] = n_train / params['batch_size']
 params['verbose'] = False
 
 #
-# Grid Search
+# Run
 #
 
 filename = params['dir_name'] + '.log'
