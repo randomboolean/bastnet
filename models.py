@@ -30,8 +30,12 @@ class base_model(object):
             end = begin + self.batch_size
             end = min([end, size])
             
-            batch_data = np.zeros((self.batch_size, data.shape[1]))
-            tmp_data = data[begin:end,:]
+            if self.nb_channels == 1:
+                batch_data = np.zeros((self.batch_size, data.shape[1]))
+                tmp_data = data[begin:end,:]
+            else:
+                batch_data = np.zeros((self.batch_size, data.shape[1], self.nb_channels))
+                tmp_data = data[begin:end,:,:]
             if type(tmp_data) is not np.ndarray:
                 tmp_data = tmp_data.toarray()  # convert sparse matrices
             batch_data[:end-begin] = tmp_data
@@ -149,17 +153,17 @@ class base_model(object):
 
     # Methods to construct the computational graph.
     
-    def build_graph(self, M_0, nb_channels=1):
+    def build_graph(self, M_0):
         """Build the computational graph of the model."""
         self.graph = tf.Graph()
         with self.graph.as_default():
 
             # Inputs.
             with tf.name_scope('inputs'):
-                if nb_channels == 1:
+                if self.nb_channels == 1:
                     self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0), 'data')
                 else:
-                    self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0, nb_channels), 'data')
+                    self.ph_data = tf.placeholder(tf.float32, (self.batch_size, M_0, self.nb_channels), 'data')
                 self.ph_labels = tf.placeholder(tf.int32, (self.batch_size), 'labels')
                 self.ph_dropout = tf.placeholder(tf.float32, (), 'dropout')
 
@@ -809,9 +813,10 @@ class cgcnn(base_model):
         self.filter = getattr(self, filter)
         self.brelu = getattr(self, brelu)
         self.pool = getattr(self, pool)
+        self.nb_channels = nb_channels
         
         # Build the computational graph.
-        self.build_graph(M_0, nb_channels)
+        self.build_graph(M_0)
         
     def filter_in_fourier(self, x, L, Fout, K, U, W):
         # TODO: N x F x M would avoid the permutations
