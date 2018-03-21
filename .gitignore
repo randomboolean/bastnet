@@ -4,3 +4,4 @@ article_v2/
 *.pyc
 summaries/
 checkpoints/
+*.pdf
