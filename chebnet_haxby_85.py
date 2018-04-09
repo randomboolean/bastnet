@@ -90,7 +90,7 @@ for F in [8, 16, 32, 64, 128]:
     for M1 in [32, 64, 128]:
         for M2 in [0, 32, 64, 128]:
             for dropout in [1., 0.75, 0.5]:
-                if sim_id > 85:
+                if sim_id > 85*NB_INITIALIZATIONS :
                     break
 
                 # Do we resume from last checkpoint or not
