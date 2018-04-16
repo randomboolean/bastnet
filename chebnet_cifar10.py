@@ -14,7 +14,7 @@ from graph import laplacian
 parser = argparse.ArgumentParser(description="Run sim on cifar10 with ChebNet")
 parser.add_argument('--graph', default='cifar10_cov_4closest_symmetrized', type=str)
 parser.add_argument('--order', default=5, type=int)
-parser.add_argument('--verbose', type='store_true')
+parser.add_argument('--verbose', action='store_true')
 args = parser.parse_args()
 
 #
@@ -24,7 +24,7 @@ args = parser.parse_args()
 (X_train, y_train), (X_test, y_test) = cifar10.load_data()
 X_train, X_test= X_train / 255.0 , X_test / 255.0
 #y_train, y_test = to_categorical(y_train), to_categorical(y_test)
-y_train, y_test = y_train.reshape((y_train.shape[0],)), ((y_test.shape[0],))
+y_train, y_test = y_train.reshape((y_train.shape[0],)), y_test.reshape((y_test.shape[0],))
 
 n_train = X_train.shape[0]
 n_test= X_test.shape[0]
@@ -84,6 +84,7 @@ params['verbose'] = args.verbose
 filename = params['dir_name'] + '.log'
 saver = open(filename, 'w')
 saver.write("max time\n")
+saver.flush()
 
 t_start = time.time()
 model = cgcnn(L * depth, **params)
