@@ -1,20 +1,35 @@
 '''Train CIFAR10 using ChebNet.'''
 from __future__ import print_function
 
+import numpy as np
+from scipy import sparse
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-from scipy import sparse
 
 import torchvision
+
+from torch.autograd import Variable
+from torch.autograd import Function
+from torchvision.transforms import ToTensor
 
 import os
 import argparse
 
 from utils import progress_bar
-from torch.autograd import Variable
+
+parser = argparse.ArgumentParser(description='CIFAR10 ChebNet Training')
+parser.add_argument('--graph', '-g', default='cifar10_cov_4closest_symmetrized', help='path of graph file')
+parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
+parser.add_argument('--batch', default=32, type=int, help='batch size')
+parser.add_argument('--epochs', default=150, type=float, help='epochs to train')
+parser.add_argument('--clip', default=-1.0, type=float, help='gradient clipping value if > 0')
+parser.add_argument('--k', default=5, type=int, help='polynomial orders')
+parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
+args = parser.parse_args()
 
 class my_sparse_mm(Function):
     
@@ -130,34 +145,34 @@ class ChebNet(nn.Module):
         self.n = 32*32
         self.c = 10
         self.inference = nn.Sequential(
-                ChebConv(3, 96, L, K),
+                ChebConv(3, 96, self.L, self.K),
                 nn.BatchNorm1d(96),
                 nn.ReLU(inplace=True),
                 
-                ChebConv(96, 96, L, K),
+                ChebConv(96, 96, self.L, self.K),
                 nn.BatchNorm1d(96),
                 nn.ReLU(inplace=True),
                 
-                ChebConv(96, 96, L, K),
+                ChebConv(96, 96, self.L, self.K),
                 nn.BatchNorm1d(96),
                 nn.ReLU(inplace=True),
                 nn.Dropout(),
                 
-                ChebConv(96, 192, L, K),
+                ChebConv(96, 192, self.L, self.K),
                 nn.BatchNorm1d(192),
                 nn.ReLU(inplace=True),
                 
-                ChebConv(192, 192, L, K),
-                nn.BatchNorm1d(192),
-                nn.ReLU(inplace=True),
-                nn.Dropout(),
-                
-                ChebConv(192, 192, L, K),
+                ChebConv(192, 192, self.L, self.K),
                 nn.BatchNorm1d(192),
                 nn.ReLU(inplace=True),
                 nn.Dropout(),
                 
-                ChebConv(192, 96, L, K),
+                ChebConv(192, 192, self.L, self.K),
+                nn.BatchNorm1d(192),
+                nn.ReLU(inplace=True),
+                nn.Dropout(),
+                
+                ChebConv(192, 96, self.L, self.K),
                 nn.BatchNorm1d(96),
                 nn.ReLU(inplace=True),
                 nn.Dropout()
@@ -165,21 +180,11 @@ class ChebNet(nn.Module):
         self.classifier = nn.Linear(self.n * 96, self.c)
 
     def forward(self, x):
+        x = x.view((x.size(0), 3, self.n))
         x = self.inference(x)
         x = x.view((x.size(0), -1))
         x = self.classifier(x)
         return x
-
-parser = argparse.ArgumentParser(description='CIFAR10 ChebNet Training')
-parser.add_argument('--graph', '-g', default='cifar10_cov_4closest_symmetrized', help='path of graph file')
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
-parser.add_argument('--batch', default=128, type=int, help='batch size')
-parser.add_argument('--epochs', default=50, type=float, help='epochs to train')
-parser.add_argument('--clip', default=0.25, type=float, help='gradient clipping value')
-parser.add_argument('--k', default=5, type=int, help='polynomial orders')
-parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-
-args = parser.parse_args()
 
 use_cuda = torch.cuda.is_available()
 best_acc = 0  # best test accuracy
@@ -201,9 +206,9 @@ else:
 
 # Data
 print('==> Preparing data..')
-trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True)
+trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=ToTensor())
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch, shuffle=True, num_workers=2)
-testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True)
+testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=ToTensor())
 testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False, num_workers=2)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
@@ -214,7 +219,7 @@ if use_cuda:
     cudnn.benchmark = True
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-6)
 
 # Training
 def train(epoch):
@@ -224,7 +229,6 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        #inputs = reorder(perm, inputs)
         if use_cuda:
             inputs, targets = inputs.cuda(), targets.cuda()
         optimizer.zero_grad()
@@ -232,7 +236,8 @@ def train(epoch):
         outputs = net(inputs)
         loss = criterion(outputs, targets)
         loss.backward()
-        torch.nn.utils.clip_grad_norm(net.parameters(), args.clip)
+        if args.clip > 0:
+            torch.nn.utils.clip_grad_norm(net.parameters(), args.clip)
         optimizer.step()
 
         train_loss += loss.data[0]
@@ -279,7 +284,6 @@ def test(epoch):
             os.mkdir('checkpoint')
         torch.save(state, './checkpoint/ckpt.t7')
         best_acc = acc
-
 
 for epoch in range(start_epoch, start_epoch+args.epochs):
     train(epoch)
