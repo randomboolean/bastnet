@@ -14,6 +14,7 @@ from graph import laplacian
 parser = argparse.ArgumentParser(description="Run sim on cifar10 with ChebNet")
 parser.add_argument('--graph', default='cifar10_cov_4closest_symmetrized', type=str)
 parser.add_argument('--order', default=5, type=int)
+parser.add_argument('--verbose', type='store_true')
 args = parser.parse_args()
 
 #
@@ -74,7 +75,7 @@ params['dropout'] = 0.
 params['decay_rate'] = 0.95
 params['momentum'] = 0.
 params['decay_steps'] = n_train / params['batch_size']
-params['verbose'] = False
+params['verbose'] = args.verbose
 
 #
 # Run

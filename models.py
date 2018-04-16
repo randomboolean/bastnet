@@ -44,6 +44,7 @@ class base_model(object):
             # Compute loss if labels are given.
             if labels is not None:
                 batch_labels = np.zeros(self.batch_size)
+                print(labels[begin:end])
                 batch_labels[:end-begin] = labels[begin:end]
                 feed_dict[self.ph_labels] = batch_labels
                 batch_pred, batch_loss = sess.run([self.op_prediction, self.op_loss], feed_dict)
