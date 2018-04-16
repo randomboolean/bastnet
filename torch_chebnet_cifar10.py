@@ -2,7 +2,8 @@
 from __future__ import print_function
 
 import numpy as np
-from scipy import sparse
+import scipy.sparse
+from scipy.sparse.linalg import eigsh
 
 import torch
 import torch.nn as nn
@@ -23,11 +24,12 @@ from utils import progress_bar
 
 parser = argparse.ArgumentParser(description='CIFAR10 ChebNet Training')
 parser.add_argument('--graph', '-g', default='cifar10_cov_4closest_symmetrized', help='path of graph file')
-parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
-parser.add_argument('--batch', default=32, type=int, help='batch size')
-parser.add_argument('--epochs', default=150, type=float, help='epochs to train')
-parser.add_argument('--clip', default=-1.0, type=float, help='gradient clipping value if > 0')
-parser.add_argument('--k', default=5, type=int, help='polynomial orders')
+parser.add_argument('--lr', '-l', default=0.001, type=float, help='learning rate')
+parser.add_argument('--batch', '-b', default=32, type=int, help='batch size')
+parser.add_argument('--epochs', '-e', default=150, type=int, help='epochs to train')
+parser.add_argument('--clip', '-c', default=-1.0, type=float, help='gradient clipping value if > 0')
+parser.add_argument('--k', '-k', default=5, type=int, help='polynomial orders')
+parser.add_argument('--adam', '-a', action='store_true', help='ude Adam instead of SGD')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
 
@@ -44,6 +46,18 @@ class my_sparse_mm(Function):
         grad_input_dL_dW = torch.mm(grad_input, x.t()) 
         grad_input_dL_dx = torch.mm(W.t(), grad_input )
         return grad_input_dL_dW, grad_input_dL_dx
+
+def rescale_L(L, lmax=2):
+    """Rescale Laplacian eigenvalues to [-1,1]"""
+    M, M = L.shape
+    I = scipy.sparse.identity(M, format='csr', dtype=L.dtype)
+    L /= lmax * 2
+    L -= I
+    return L 
+
+def lmax_L(L):
+    """Compute largest Laplacian eigenvalue"""
+    return eigsh(L, k=1, which='LM', return_eigenvectors=False)[0]
 
 class ChebConv(nn.Module):
 
@@ -133,7 +147,7 @@ def read_graph(filename):
             for value in splitted:
                 value = int(value)
                 A[index-1,value] = 1
-    A = sparse.csr_matrix(A)
+    A = scipy.sparse.csr_matrix(A)
     return A
 
 class ChebNet(nn.Module):
@@ -219,7 +233,10 @@ if use_cuda:
     cudnn.benchmark = True
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-6)
+if args.adam:
+    optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=1e-6)
+else:
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-6)
 
 # Training
 def train(epoch):
