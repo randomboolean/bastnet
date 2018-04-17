@@ -9,6 +9,7 @@ from loader import load_dataset, load_graph
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.utils.np_utils import to_categorical
+from keras.optimizers import Adam
 
 parser = argparse.ArgumentParser(description="Run grid search for MLP on Haxby")
 parser.add_argument('--subject', default=0, type=int)
@@ -56,19 +57,19 @@ for unused in [1]:
                     model = Sequential()
                     model.add(Dense(M1, activation="relu", input_dim=d))
                     model.add(Dropout(dropout))
-                    model.add(Dense(M2, activation="relu"))
-                    model.add(Dropout(dropout))
+                    if M2 > 0:
+                        model.add(Dense(M2, activation="relu"))
+                        model.add(Dropout(dropout))
                     model.add(Dense(C, activation="softmax"))
 
                     model.compile(loss="categorical_crossentropy", optimizer=Adam(lr=0.001, decay=1e-6), metrics=["accuracy"])
                     model.summary()
-                    history = model.fit(X_train, to_categorical(Y_train), batch_size=32, shuffle=True, epochs=50, validation_data=(X_test, to_categorical(Y_test)), verbose=0)
+                    history = model.fit(X_train, to_categorical(y_train), batch_size=32, shuffle=True, epochs=50, validation_data=(X_test, to_categorical(y_test)), verbose=0)
                     
                     maxValue = max(history.history["val_acc"])
                     results += [maxValue]
                     if maxValue > gridSearchMax:
                         gridSearchMax = maxValue
-                        accuracy, loss, t_step = _accuracy, _loss, _t_step
                         toprint = "Current best Max: " + str(gridSearchMax) + " (fullyConnectedSize1=" + str(M1) + ", fullyConnectedSize2=" + str(
                             M2) + ", dropout=" + str(dropout) + ")"
                         print(toprint)
