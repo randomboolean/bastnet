@@ -12,7 +12,7 @@ from keras.utils.np_utils import to_categorical
 from keras.optimizers import Adam
 
 parser = argparse.ArgumentParser(description="Run grid search for MLP on Haxby")
-parser.add_argument('--subject', default=0, type=int)
+parser.add_argument('--subject', '-s', default=0, type=int)
 args = parser.parse_args()
 
 (X_train, y_train), (X_test, y_test) = load_dataset(subject=args.subject)
